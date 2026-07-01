@@ -1,0 +1,5 @@
+/bin/
+*.accdb
+*.accdb.bak.*
+*.laccdb
+*.md

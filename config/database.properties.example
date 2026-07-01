@@ -1,0 +1,8 @@
+# Copie ce fichier en "database.properties" (dans le même dossier "config/")
+# et adapte le chemin à ta machine pour ne plus dépendre du chemin en dur
+# qui était codé dans Database.java.
+#
+# Alternative sans fichier : définir la variable d'environnement CLUBVELO_DB_URL
+# ou passer -Dclubvelo.db.url=... au lancement de l'application.
+
+db.url=jdbc:ucanaccess://C:/chemin/vers/ta/base/SenechalSamuel.accdb

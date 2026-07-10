@@ -38,6 +38,9 @@ public class LoginFrame extends JFrame {
         add(p2);
         add(loginBtn);
         
+        JButton signupBtn = new JButton("S'inscrire");
+        signupBtn.addActionListener(e -> new CreateMemberFrame().setVisible(true));
+        add(signupBtn);
     }
 
     private void attemptLogin() {

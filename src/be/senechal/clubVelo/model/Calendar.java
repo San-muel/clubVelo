@@ -32,4 +32,9 @@ public class Calendar {
 		this.rides = rides;
 	}
 
+	public boolean addRide(Ride ride, int managerid, int categoryManager) {
+		ride.setCategory(this.category);
+		rides.add(ride);
+		return DaoFactory.getRideDao().create(ride, managerid, categoryManager);
+	}
 }

@@ -75,6 +75,21 @@ public class ManagerFrame extends JFrame {
             new CreateRideFrame(loggedManager, this);
         });
 
+        JButton deleteRideBtn = new JButton("Supprimer la balade");
+        deleteRideBtn.addActionListener(e -> deleteSelectedRide());
+
+        JButton refreshBtn = new JButton("Actualiser");
+        refreshBtn.addActionListener(e -> loadRideTable());
+
+        JButton logoutBtn = new JButton("Déconnexion");
+        logoutBtn.addActionListener(e -> {
+            Session.logout();
+            dispose();
+            new LoginFrame().setVisible(true);
+        });
+
+        bottomPanel.add(createRideBtn);
+        bottomPanel.add(deleteRideBtn);
         bottomPanel.add(refreshBtn);
         bottomPanel.add(Box.createHorizontalStrut(20));
         bottomPanel.add(logoutBtn);
@@ -104,4 +119,37 @@ public class ManagerFrame extends JFrame {
         }
     }
 
+    private void deleteSelectedRide() {
+        int row = rideTable.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Veuillez sélectionner une balade à supprimer.");
+            return;
+        }
+
+        int rideNum = (int) rideTableModel.getValueAt(row, 0);
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Supprimer la balade n°" + rideNum + " ainsi que toutes ses inscriptions ?",
+                "Confirmer la suppression", JOptionPane.YES_NO_OPTION);
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        Ride ride = loggedManager.getCategory().getCalendar().getRides().stream()
+                .filter(r -> r.getNum() == rideNum).findFirst().orElse(null);
+        if (ride == null) return;
+
+        if (ride.isPaid()) {
+            JOptionPane.showMessageDialog(this,
+                    "Impossible de supprimer cette balade : ses paiements ont déjà été traités par le trésorier.",
+                    "Suppression refusée", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        boolean success = ride.delete();
+        if (success) {
+            JOptionPane.showMessageDialog(this, "Balade supprimée.");
+            loggedManager.getCategory().refreshCalendar();
+            loadRideTable();
+        } else {
+            JOptionPane.showMessageDialog(this, "Erreur lors de la suppression.", "Erreur", JOptionPane.ERROR_MESSAGE);
+        }
+    }
 }

@@ -82,6 +82,13 @@ public class Ride {
         return Math.round((distanceKm * 2 * COUT_PAR_KM) * 100.0) / 100.0;
     }
 
+    public boolean delete() {
+        if (this.paid) {
+            return false;
+        }
+        return DaoFactory.getRideDao().delete(this.num);
+    }
+
     static public List<Ride> getAllRide(){
         return DaoFactory.getRideDao().getAll();
     }

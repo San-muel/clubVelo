@@ -65,6 +65,30 @@ public class Ride {
         setVehicles(vehicles);
     }
 
+    public static String validateFutureDateForCreation(LocalDateTime startDate) {
+        if (startDate == null) {
+            return "La date de la balade est obligatoire.";
+        }
+        if (startDate.isBefore(LocalDateTime.now())) {
+            return "La date de la balade doit être dans le futur.";
+        }
+        return null;
+    }
+
+    public static double computeFee(double distanceKm) {
+        if (distanceKm <= 0) {
+            throw new IllegalArgumentException("La distance doit être > 0.");
+        }
+        return Math.round((distanceKm * 2 * COUT_PAR_KM) * 100.0) / 100.0;
+    }
+
+    public boolean delete() {
+        if (this.paid) {
+            return false;
+        }
+        return DaoFactory.getRideDao().delete(this.num);
+    }
+
     static public List<Ride> getAllRide(){
         return DaoFactory.getRideDao().getAll();
     }

@@ -102,6 +102,10 @@ public class Vehicle {
         return getBikesForRide(ride).size() >= bikeSpotNumber;
     }
 
+    public static boolean create(Vehicle vehicle) {
+    	return DaoFactory.getVehicleDao().create(vehicle);
+    }
+
     public boolean delete() {
         return DaoFactory.getVehicleDao().delete(this.id);
     }

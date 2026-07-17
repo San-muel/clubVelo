@@ -62,6 +62,14 @@ public class Member extends Person {
 		return montantTotal;
 	}
 
+	public boolean addBike(Bike bike) {
+		if (!DaoFactory.getBikeDao().create(bike, this.getId())) {
+			return false;
+		}
+		bikes.add(bike);
+		return true;
+	}
+
 	static public boolean addMember(Member member) {
 		return DaoFactory.getMemberDao().create(member);
 	}

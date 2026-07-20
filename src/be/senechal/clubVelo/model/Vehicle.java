@@ -102,6 +102,54 @@ public class Vehicle {
         return getBikesForRide(ride).size() >= bikeSpotNumber;
     }
 
+    public boolean addPassengerForRide(Ride ride, Member member) {
+        List<Member> list = passengersPerRide.computeIfAbsent(ride, r -> new ArrayList<>());
+
+        if (list.size() >= seatNumber)
+            return false;
+
+        if (!list.contains(member)) {
+            if (!uploadPassenger(ride.getNum(), member.getId())) {
+                return false;
+            }
+            list.add(member);
+        }
+
+        return true;
+    }
+
+    public boolean addBikeForRide(Ride ride, Bike bike) {
+        List<Bike> list = bikesPerRide.computeIfAbsent(ride, r -> new ArrayList<>());
+
+        if (list.size() >= bikeSpotNumber)
+            return false;
+
+        if (!list.contains(bike)) {
+            if (!uploadBike(ride.getNum(), bike.getId())) {
+                return false;
+            }
+            list.add(bike);
+        }
+
+        return true;
+    }
+
+    public void loadVehicle(Ride ride) {
+    	List<Member> members = DaoFactory.getMemberDao().getAllPassager(id, ride.getNum());
+        passengersPerRide.put(ride, members != null ? members : new ArrayList<>());
+
+        List<Bike> bikes = DaoFactory.getBikeDao().getAllBike(id, ride.getNum());
+    	bikesPerRide.put(ride, bikes != null ? bikes : new ArrayList<>());
+    }
+
+    private boolean uploadPassenger(int rideId, int memberId) {
+    	return DaoFactory.getInscriptionDao().addInscription(rideId, id, memberId, null);
+    }
+
+    private boolean uploadBike(int rideId, int bikeId) {
+        return DaoFactory.getInscriptionDao().addInscription(rideId, id, null, bikeId);
+    }
+
     public static boolean create(Vehicle vehicle) {
     	return DaoFactory.getVehicleDao().create(vehicle);
     }

@@ -82,6 +82,126 @@ public class Ride {
         return Math.round((distanceKm * 2 * COUT_PAR_KM) * 100.0) / 100.0;
     }
 
+    public int getNeededSeatNumber() {
+        int count = 0;
+        for (Vehicle v : vehicles) {
+            count += v.getPassengersForRide(this).size();
+        }
+        return count;
+    }
+
+    public int getNeededBikeSpotNumber() {
+        int count = 0;
+        for (Vehicle v : vehicles) {
+            count += v.getBikesForRide(this).size();
+        }
+        return count;
+    }
+
+    public int getTotalSeatCapacity() {
+        int total = 0;
+        for (Vehicle v : vehicles) {
+            total += v.getSeatNumber();
+        }
+        return total;
+    }
+
+    public int getTotalBikeSpotNumber() {
+        int total = 0;
+        for (Vehicle v : vehicles) {
+            total += v.getBikeSpotNumber();
+        }
+        return total;
+    }
+
+    public int getAvailableSeatNumber() {
+        return getTotalSeatCapacity() - getNeededSeatNumber();
+    }
+
+    public int getAvailableBikeSpotNumber() {
+        return getTotalBikeSpotNumber() - getNeededBikeSpotNumber();
+    }
+
+    public int getTotalInscriptionNumber() {
+        return getNeededSeatNumber() + getNeededBikeSpotNumber();
+    }
+
+    public boolean isRegistrationOpen() {
+        return startDate != null && startDate.isAfter(LocalDateTime.now());
+    }
+
+    public boolean addVehicle(Vehicle vehicle, Member member) {
+        if (!isRegistrationOpen()) {
+            return false;
+        }
+        vehicles.add(vehicle);
+        vehicle.addRide(this);
+        return DaoFactory.getRideDao().addVehicleToRide(this.getNum(), vehicle.getId(), member.getId());
+    }
+
+    public boolean addInscription(int vehicleId, int memberId, int bikeId) {
+        if (!isRegistrationOpen()) {
+            return false;
+        }
+        return DaoFactory.getInscriptionDao().addInscription(this.getNum(), vehicleId, memberId, bikeId);
+    }
+
+    public void loadVehiclesOccupancy() {
+        for (Vehicle v : vehicles) {
+            v.loadVehicle(this);
+        }
+    }
+
+    public boolean isMemberSeated(Member member) {
+        if (member == null) {
+            return false;
+        }
+        for (Vehicle v : vehicles) {
+            if (member.equals(v.getDriver())) {
+                return true;
+            }
+            if (v.getPassengersForRide(this).contains(member)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isMemberBikeSeated(Member member) {
+        if (member == null) {
+            return false;
+        }
+        List<Bike> memberBikes = member.getBikes();
+        for (Vehicle v : vehicles) {
+            for (Bike b : v.getBikesForRide(this)) {
+                if (memberBikes.contains(b)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean reserveSeat(Vehicle vehicle, Member member) {
+        if (!isRegistrationOpen() || vehicle == null || member == null || !vehicles.contains(vehicle)) {
+            return false;
+        }
+        if (isMemberSeated(member)) {
+            return false;
+        }
+        return vehicle.addPassengerForRide(this, member);
+    }
+
+    public boolean reserveBikeSpot(Vehicle vehicle, Member member, Bike bike) {
+        if (!isRegistrationOpen() || vehicle == null || member == null || bike == null || !vehicles.contains(vehicle)) {
+            return false;
+        }
+        if (isMemberBikeSeated(member)) {
+            return false;
+        }
+        return vehicle.addBikeForRide(this, bike);
+    }
+
     public boolean delete() {
         if (this.paid) {
             return false;

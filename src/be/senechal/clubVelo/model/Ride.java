@@ -82,6 +82,19 @@ public class Ride {
         return Math.round((distanceKm * 2 * COUT_PAR_KM) * 100.0) / 100.0;
     }
 
+    public boolean isRegistrationOpen() {
+        return startDate != null && startDate.isAfter(LocalDateTime.now());
+    }
+
+    public boolean addVehicle(Vehicle vehicle, Member member) {
+        if (!isRegistrationOpen()) {
+            return false;
+        }
+        vehicles.add(vehicle);
+        vehicle.addRide(this);
+        return DaoFactory.getRideDao().addVehicleToRide(this.getNum(), vehicle.getId(), member.getId());
+    }
+
     public boolean delete() {
         if (this.paid) {
             return false;

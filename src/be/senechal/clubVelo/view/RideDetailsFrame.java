@@ -151,6 +151,8 @@ public class RideDetailsFrame extends JFrame {
             centerPanel.add(noVehicles);
         } else {
             ride.loadVehiclesOccupancy();
+            boolean memberAlreadySeated = isMemberMode && ride.isMemberSeated(loggedUser);
+            boolean memberBikeAlreadySeated = isMemberMode && ride.isMemberBikeSeated(loggedUser);
 
             for (Vehicle v : ride.getVehicles()) {
                 JPanel vehiclePanel = new JPanel(new GridBagLayout());
@@ -168,6 +170,10 @@ public class RideDetailsFrame extends JFrame {
                 boolean isFullPassengers = v.isPassengerFull(ride);
                 boolean isFullBikes = v.isBikeFull(ride);
 
+                boolean isDriver = isMemberMode && v.getDriver().equals(loggedUser);
+                boolean isPassenger = isMemberMode && passengers.contains(loggedUser);
+                boolean isAlreadySeated = isPassenger || isDriver || memberAlreadySeated;
+
                 // --- UI INFO ---
                 gbc.gridx = 0; gbc.gridy = 0;
                 vehiclePanel.add(new JLabel("Conducteur : " + v.getDriver().getName()), gbc);
@@ -181,6 +187,96 @@ public class RideDetailsFrame extends JFrame {
 
                 gbc.gridx = 0; gbc.gridy = 2;
                 vehiclePanel.add(new JLabel("Vélos : " + bikes.size() + "/" + v.getBikeSpotNumber()), gbc);
+
+                // --- BOUTONS ---
+
+                // 1. Bouton Passager
+                gbc.gridx = 0; gbc.gridy = 3;
+                JButton btnPassengerOnly = new JButton("M'inscrire (Passager)");
+
+                if (!isMemberMode) {
+                    btnPassengerOnly.setEnabled(false);
+                } else if (!ride.isRegistrationOpen()) {
+                    btnPassengerOnly.setEnabled(false);
+                    btnPassengerOnly.setText("Inscriptions fermées");
+                } else if (isFullPassengers || isAlreadySeated) {
+                    btnPassengerOnly.setEnabled(false);
+                    String label;
+                    if (isPassenger || isDriver) {
+                        label = isDriver ? "Vous êtes le chauffeur" : "Déjà passager ici";
+                    } else if (memberAlreadySeated) {
+                        label = "Déjà inscrit sur un autre véhicule";
+                    } else {
+                        label = "Sièges complets";
+                    }
+                    btnPassengerOnly.setText(label);
+                }
+
+                btnPassengerOnly.addActionListener(e -> {
+                    if(!isMemberMode) return;
+                    try {
+                        boolean success = ride.reserveSeat(v, loggedUser);
+                        if (success) {
+                            JOptionPane.showMessageDialog(this, "Place passager réservée !");
+                            loadVehicles();
+                            centerPanel.revalidate(); centerPanel.repaint();
+                        } else if (ride.isMemberSeated(loggedUser)) {
+                            JOptionPane.showMessageDialog(this,
+                                    "Vous êtes déjà inscrit dans un véhicule de ce ride.");
+                        } else {
+                            JOptionPane.showMessageDialog(this, "Sièges complets, inscription refusée.");
+                        }
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(this, "Erreur : " + ex.getMessage());
+                    }
+                });
+                vehiclePanel.add(btnPassengerOnly, gbc);
+
+                // 2. Bouton Vélo
+                gbc.gridx = 1; gbc.gridy = 3;
+                JButton btnBikeOnly = new JButton("Ajouter un vélo");
+
+                if (!isMemberMode) {
+                    btnBikeOnly.setEnabled(false);
+                } else if (!ride.isRegistrationOpen()) {
+                    btnBikeOnly.setEnabled(false);
+                    btnBikeOnly.setText("Inscriptions fermées");
+                } else if (isFullBikes || memberBikeAlreadySeated) {
+                    btnBikeOnly.setEnabled(false);
+                    btnBikeOnly.setText(memberBikeAlreadySeated ? "Vélo déjà placé sur un autre véhicule" : "Rack vélo complet");
+                }
+
+                btnBikeOnly.addActionListener(e -> {
+                    if(!isMemberMode) return;
+
+                    List<Bike> memberBikes = loggedUser.getBikes();
+                    if (memberBikes.isEmpty()) {
+                        JOptionPane.showMessageDialog(this, "Vous n'avez aucun vélo enregistré !");
+                        return;
+                    }
+
+                    Object[] bikeChoices = memberBikes.toArray();
+                    Bike selectedBike = (Bike) JOptionPane.showInputDialog(this, "Quel vélo ?", "Choisir",
+                            JOptionPane.QUESTION_MESSAGE, null, bikeChoices, bikeChoices[0]);
+                    if (selectedBike == null) return;
+
+                    try {
+                        boolean success = ride.reserveBikeSpot(v, loggedUser, selectedBike);
+                        if (success) {
+                            JOptionPane.showMessageDialog(this, "Vélo ajouté !");
+                            loadVehicles();
+                            centerPanel.revalidate(); centerPanel.repaint();
+                        } else if (ride.isMemberBikeSeated(loggedUser)) {
+                            JOptionPane.showMessageDialog(this,
+                                    "Un de vos vélos est déjà placé dans un véhicule de ce ride.");
+                        } else {
+                            JOptionPane.showMessageDialog(this, "Rack vélo complet, ajout refusé.");
+                        }
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(this, "Erreur : " + ex.getMessage());
+                    }
+                });
+                vehiclePanel.add(btnBikeOnly, gbc);
 
                 centerPanel.add(vehiclePanel);
                 centerPanel.add(Box.createVerticalStrut(10));

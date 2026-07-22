@@ -169,6 +169,20 @@ public class Ride {
                 .anyMatch(p -> p.getMemberId() == member.getId());
     }
 
+    public Vehicle findAvailableVehicleFor(Bike bike) {
+        for (Vehicle v : vehicles) {
+            v.loadVehicle(this);
+            if (v.isPassengerFull(this)) {
+                continue;
+            }
+            if (bike != null && v.isBikeFull(this)) {
+                continue;
+            }
+            return v;
+        }
+        return null;
+    }
+
     public void loadVehiclesOccupancy() {
         for (Vehicle v : vehicles) {
             v.loadVehicle(this);

@@ -81,6 +81,18 @@ public class RideDetailsFrame extends JFrame {
         bottomPanel.add(addMyVehicleBtn);
         bottomPanel.add(Box.createHorizontalStrut(10));
 
+        // 2. Bouton "Je participe à cette balade"
+        JButton participateBtn = new JButton("Je participe à cette balade");
+        if (!isMemberMode) {
+            participateBtn.setEnabled(false);
+        } else if (!ride.isRegistrationOpen()) {
+            participateBtn.setEnabled(false);
+            participateBtn.setText("Inscriptions fermées");
+        }
+        participateBtn.addActionListener(e -> declareParticipation());
+        bottomPanel.add(participateBtn);
+        bottomPanel.add(Box.createHorizontalStrut(10));
+
         // 4. Bouton Fermer
         JButton closeBtn = new JButton("Fermer");
         closeBtn.addActionListener(e -> dispose());
@@ -138,6 +150,60 @@ public class RideDetailsFrame extends JFrame {
             }
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Erreur: " + ex.getMessage());
+        }
+    }
+
+    private void declareParticipation() {
+        if (!isMemberMode) return;
+
+        if (ride.isMemberParticipating(loggedUser)) {
+            JOptionPane.showMessageDialog(this, "Vous avez déjà déclaré votre participation à cette balade.");
+            return;
+        }
+
+        int wantsBike = JOptionPane.showConfirmDialog(this, "Comptez-vous amener un vélo ?",
+                "Vélo", JOptionPane.YES_NO_OPTION);
+        if (wantsBike == JOptionPane.CLOSED_OPTION) {
+            return;
+        }
+
+        Bike chosenBike = null;
+        if (wantsBike == JOptionPane.YES_OPTION) {
+            List<Bike> memberBikes = loggedUser.getBikes();
+            if (memberBikes.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        "Vous n'avez aucun vélo enregistré. Ajoutez-en un depuis votre profil avant de participer avec un vélo.",
+                        "Aucun vélo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            Object[] bikeChoices = memberBikes.toArray();
+            chosenBike = (Bike) JOptionPane.showInputDialog(this, "Quel vélo comptez-vous amener ?",
+                    "Choisir un vélo", JOptionPane.QUESTION_MESSAGE, null, bikeChoices, bikeChoices[0]);
+            if (chosenBike == null) {
+                return;
+            }
+        }
+
+        boolean success = ride.addParticipation(loggedUser, chosenBike);
+        if (!success) {
+            JOptionPane.showMessageDialog(this, "Erreur lors de l'enregistrement de la participation.", "Erreur", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        Vehicle availableVehicle = ride.findAvailableVehicleFor(chosenBike);
+
+        if (availableVehicle != null) {
+            boolean seated = ride.reserveSeat(availableVehicle, loggedUser);
+            boolean bikeSeated = chosenBike == null || ride.reserveBikeSpot(availableVehicle, loggedUser, chosenBike);
+            loadVehicles();
+            if (seated && bikeSeated) {
+                JOptionPane.showMessageDialog(this, "Vous avez été inscrit automatiquement dans le véhicule de "
+                        + availableVehicle.getDriver().getName() + " !");
+            } else {
+                JOptionPane.showMessageDialog(this, "Votre souhait de participer a bien été pris en compte.");
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Votre souhait de participer a bien été pris en compte.");
         }
     }
 

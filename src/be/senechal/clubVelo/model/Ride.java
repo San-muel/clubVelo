@@ -126,6 +126,16 @@ public class Ride {
         return getNeededSeatNumber() + getNeededBikeSpotNumber();
     }
 
+    public int getDemandedSeatNumber() {
+        return DaoFactory.getParticipationDao().getByRideId(this.num).size();
+    }
+
+    public int getDemandedBikeSpotNumber() {
+        return (int) DaoFactory.getParticipationDao().getByRideId(this.num).stream()
+                .filter(p -> p.getBikeId() != null)
+                .count();
+    }
+
     public boolean isRegistrationOpen() {
         return startDate != null && startDate.isAfter(LocalDateTime.now());
     }
@@ -144,6 +154,19 @@ public class Ride {
             return false;
         }
         return DaoFactory.getInscriptionDao().addInscription(this.getNum(), vehicleId, memberId, bikeId);
+    }
+
+    public boolean addParticipation(Member member, Bike bike) {
+        if (!isRegistrationOpen()) {
+            return false;
+        }
+        return DaoFactory.getParticipationDao().addParticipation(this.getNum(), member.getId(),
+                bike != null ? bike.getId() : null);
+    }
+
+    public boolean isMemberParticipating(Member member) {
+        return DaoFactory.getParticipationDao().getByRideId(this.num).stream()
+                .anyMatch(p -> p.getMemberId() == member.getId());
     }
 
     public void loadVehiclesOccupancy() {

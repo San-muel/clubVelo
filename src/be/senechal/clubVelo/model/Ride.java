@@ -126,6 +126,16 @@ public class Ride {
         return getNeededSeatNumber() + getNeededBikeSpotNumber();
     }
 
+    public int getDemandedSeatNumber() {
+        return DaoFactory.getParticipationDao().getByRideId(this.num).size();
+    }
+
+    public int getDemandedBikeSpotNumber() {
+        return (int) DaoFactory.getParticipationDao().getByRideId(this.num).stream()
+                .filter(p -> p.getBikeId() != null)
+                .count();
+    }
+
     public boolean isRegistrationOpen() {
         return startDate != null && startDate.isAfter(LocalDateTime.now());
     }
@@ -144,6 +154,33 @@ public class Ride {
             return false;
         }
         return DaoFactory.getInscriptionDao().addInscription(this.getNum(), vehicleId, memberId, bikeId);
+    }
+
+    public boolean addParticipation(Member member, Bike bike) {
+        if (!isRegistrationOpen()) {
+            return false;
+        }
+        return DaoFactory.getParticipationDao().addParticipation(this.getNum(), member.getId(),
+                bike != null ? bike.getId() : null);
+    }
+
+    public boolean isMemberParticipating(Member member) {
+        return DaoFactory.getParticipationDao().getByRideId(this.num).stream()
+                .anyMatch(p -> p.getMemberId() == member.getId());
+    }
+
+    public Vehicle findAvailableVehicleFor(Bike bike) {
+        for (Vehicle v : vehicles) {
+            v.loadVehicle(this);
+            if (v.isPassengerFull(this)) {
+                continue;
+            }
+            if (bike != null && v.isBikeFull(this)) {
+                continue;
+            }
+            return v;
+        }
+        return null;
     }
 
     public void loadVehiclesOccupancy() {
@@ -200,6 +237,49 @@ public class Ride {
             return false;
         }
         return vehicle.addBikeForRide(this, bike);
+    }
+
+    public AvailabilitySummary computeAvailabilitySummary() {
+        loadVehiclesOccupancy();
+
+        List<Member> superfluousDrivers = vehicles.stream()
+                .filter(v -> v.getPassengersForRide(this).isEmpty())
+                .map(Vehicle::getDriver)
+                .collect(Collectors.toList());
+
+        return new AvailabilitySummary(vehicles.size(), getDemandedSeatNumber(), getTotalSeatCapacity(),
+                getDemandedBikeSpotNumber(), getTotalBikeSpotNumber(), superfluousDrivers);
+    }
+
+    public static class AvailabilitySummary {
+        private final int vehicleCount;
+        private final int demandedSeats;
+        private final int offeredSeats;
+        private final int demandedBikes;
+        private final int offeredBikes;
+        private final List<Member> superfluousDrivers;
+
+        private AvailabilitySummary(int vehicleCount, int demandedSeats, int offeredSeats,
+                int demandedBikes, int offeredBikes, List<Member> superfluousDrivers) {
+            this.vehicleCount = vehicleCount;
+            this.demandedSeats = demandedSeats;
+            this.offeredSeats = offeredSeats;
+            this.demandedBikes = demandedBikes;
+            this.offeredBikes = offeredBikes;
+            this.superfluousDrivers = superfluousDrivers;
+        }
+
+        public int getVehicleCount() { return vehicleCount; }
+        public int getDemandedSeats() { return demandedSeats; }
+        public int getOfferedSeats() { return offeredSeats; }
+        public int getSeatGap() { return demandedSeats - offeredSeats; }
+        public boolean isSeatShortage() { return getSeatGap() > 0; }
+        public boolean isSeatSurplus() { return getSeatGap() < 0; }
+        public int getDemandedBikes() { return demandedBikes; }
+        public int getOfferedBikes() { return offeredBikes; }
+        public int getBikeGap() { return demandedBikes - offeredBikes; }
+        public boolean isBikeShortage() { return getBikeGap() > 0; }
+        public List<Member> getSuperfluousDrivers() { return superfluousDrivers; }
     }
 
     public boolean delete() {

@@ -239,6 +239,49 @@ public class Ride {
         return vehicle.addBikeForRide(this, bike);
     }
 
+    public AvailabilitySummary computeAvailabilitySummary() {
+        loadVehiclesOccupancy();
+
+        List<Member> superfluousDrivers = vehicles.stream()
+                .filter(v -> v.getPassengersForRide(this).isEmpty())
+                .map(Vehicle::getDriver)
+                .collect(Collectors.toList());
+
+        return new AvailabilitySummary(vehicles.size(), getDemandedSeatNumber(), getTotalSeatCapacity(),
+                getDemandedBikeSpotNumber(), getTotalBikeSpotNumber(), superfluousDrivers);
+    }
+
+    public static class AvailabilitySummary {
+        private final int vehicleCount;
+        private final int demandedSeats;
+        private final int offeredSeats;
+        private final int demandedBikes;
+        private final int offeredBikes;
+        private final List<Member> superfluousDrivers;
+
+        private AvailabilitySummary(int vehicleCount, int demandedSeats, int offeredSeats,
+                int demandedBikes, int offeredBikes, List<Member> superfluousDrivers) {
+            this.vehicleCount = vehicleCount;
+            this.demandedSeats = demandedSeats;
+            this.offeredSeats = offeredSeats;
+            this.demandedBikes = demandedBikes;
+            this.offeredBikes = offeredBikes;
+            this.superfluousDrivers = superfluousDrivers;
+        }
+
+        public int getVehicleCount() { return vehicleCount; }
+        public int getDemandedSeats() { return demandedSeats; }
+        public int getOfferedSeats() { return offeredSeats; }
+        public int getSeatGap() { return demandedSeats - offeredSeats; }
+        public boolean isSeatShortage() { return getSeatGap() > 0; }
+        public boolean isSeatSurplus() { return getSeatGap() < 0; }
+        public int getDemandedBikes() { return demandedBikes; }
+        public int getOfferedBikes() { return offeredBikes; }
+        public int getBikeGap() { return demandedBikes - offeredBikes; }
+        public boolean isBikeShortage() { return getBikeGap() > 0; }
+        public List<Member> getSuperfluousDrivers() { return superfluousDrivers; }
+    }
+
     public boolean delete() {
         if (this.paid) {
             return false;

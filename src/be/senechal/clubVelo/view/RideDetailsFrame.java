@@ -93,6 +93,12 @@ public class RideDetailsFrame extends JFrame {
         bottomPanel.add(participateBtn);
         bottomPanel.add(Box.createHorizontalStrut(10));
 
+        // 3. Récapitulatif
+        JButton recapBtn = new JButton("Récapitulatif / Disponibilités");
+        recapBtn.addActionListener(e -> showRideSummary());
+        bottomPanel.add(recapBtn);
+        bottomPanel.add(Box.createHorizontalStrut(10));
+
         // 4. Bouton Fermer
         JButton closeBtn = new JButton("Fermer");
         closeBtn.addActionListener(e -> dispose());
@@ -205,6 +211,44 @@ public class RideDetailsFrame extends JFrame {
         } else {
             JOptionPane.showMessageDialog(this, "Votre souhait de participer a bien été pris en compte.");
         }
+    }
+
+    private void showRideSummary() {
+        Ride.AvailabilitySummary summary = ride.computeAvailabilitySummary();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== BILAN DU RIDE ===\n\n");
+        sb.append("• Véhicules engagés : ").append(summary.getVehicleCount()).append("\n");
+        sb.append("• Membres ayant déclaré participer : ").append(summary.getDemandedSeats()).append("\n");
+        sb.append("------------------------------------------------\n");
+
+        if (summary.getVehicleCount() == 0) {
+            sb.append("⚠️ Aucun véhicule pour le moment. Il manque des chauffeurs !\n");
+        } else if (summary.isSeatShortage()) {
+            sb.append("⚠️ MANQUE DE CHAUFFEURS : il manque ").append(summary.getSeatGap()).append(" place(s) (demande ")
+              .append(summary.getDemandedSeats()).append(", offre ").append(summary.getOfferedSeats()).append(").\n");
+        } else if (summary.isSeatSurplus()) {
+            sb.append("ℹ️ Offre excédentaire : ").append(-summary.getSeatGap()).append(" place(s) en trop (demande ")
+              .append(summary.getDemandedSeats()).append(", offre ").append(summary.getOfferedSeats()).append(").\n");
+            List<String> emptyDrivers = summary.getSuperfluousDrivers().stream()
+                    .map(Member::getName)
+                    .collect(Collectors.toList());
+            if (!emptyDrivers.isEmpty()) {
+                sb.append("   Véhicule(s) superflu(s) (aucun passager) : ").append(String.join(", ", emptyDrivers)).append("\n");
+            }
+        } else {
+            sb.append("✅ Offre = demande.\n");
+        }
+
+        sb.append("\n");
+        if (summary.isBikeShortage()) {
+            sb.append("⚠️ MANQUE DE RACKS VÉLOS : il manque ").append(summary.getBikeGap()).append(" place(s) vélo (demande ")
+              .append(summary.getDemandedBikes()).append(", offre ").append(summary.getOfferedBikes()).append(").\n");
+        } else {
+            sb.append("✅ Racks vélos suffisants (demande ").append(summary.getDemandedBikes()).append(", offre ").append(summary.getOfferedBikes()).append(").\n");
+        }
+
+        JOptionPane.showMessageDialog(this, sb.toString(), "Récapitulatif Disponibilités", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void loadVehicles() {

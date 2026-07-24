@@ -62,6 +62,21 @@ public class Member extends Person {
 		return montantTotal;
 	}
 
+	public boolean addMoney(double money) {
+		if (!Double.isFinite(money) || money == 0) {
+			return false;
+		}
+		double newBalance = this.balance + money;
+		if (newBalance < 0) {
+			return false;
+		}
+		if (!DaoFactory.getMemberDao().updateBalance(this.getId(), newBalance)) {
+			return false;
+		}
+		this.balance = newBalance;
+		return true;
+	}
+
 	public boolean addBike(Bike bike) {
 		if (!DaoFactory.getBikeDao().create(bike, this.getId())) {
 			return false;

@@ -186,6 +186,11 @@ public class MemberInfoFrame extends JFrame {
         modifyBtn.addActionListener(e -> updateMemberInfo());
         buttonPanel.add(modifyBtn);
 
+        // 3. Bouton Virement
+        JButton transferBtn = new JButton("Faire un virement");
+        transferBtn.addActionListener(e -> doTransfer());
+        buttonPanel.add(transferBtn);
+
         // 4. Bouton Fermer
         JButton closeBtn = new JButton("Fermer");
         closeBtn.addActionListener(e -> dispose());
@@ -307,4 +312,21 @@ public class MemberInfoFrame extends JFrame {
         }
     }
 
+    private void doTransfer() {
+        String input = JOptionPane.showInputDialog(this, "Montant à ajouter ou retirer (+/-) :");
+        if (input != null && !input.isEmpty()) {
+            try {
+                double amount = Double.parseDouble(input);
+                boolean success = member.addMoney(amount);
+                if (success) {
+                    balanceLabel.setText(String.format("%.2f", member.getBalance()));
+                    JOptionPane.showMessageDialog(this, "Virement effectué !");
+                } else {
+                    JOptionPane.showMessageDialog(this, "Virement refusé : montant invalide ou solde insuffisant.");
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Montant invalide !");
+            }
+        }
+    }
 }

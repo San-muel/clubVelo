@@ -74,6 +74,18 @@ public class Member extends Person {
 		return DaoFactory.getMemberDao().create(member);
 	}
 
+	public boolean updateInfo() {
+		return DaoFactory.getMemberDao().update(this);
+	}
+
+	public boolean addCategory(Category category) {
+		if (categories.contains(category)) {
+			return false;
+		}
+		categories.add(category);
+		return DaoFactory.getCategoryDao().addCategoryToMember(this.getId(), category.getId());
+	}
+
 	static public List<Member> getAllMember() {
 		List<Member> members = DaoFactory.getMemberDao().getAll();
 		for (Member m : members) {

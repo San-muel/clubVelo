@@ -62,8 +62,43 @@ public class Member extends Person {
 		return montantTotal;
 	}
 
+	public boolean addMoney(double money) {
+		if (!Double.isFinite(money) || money == 0) {
+			return false;
+		}
+		double newBalance = this.balance + money;
+		if (newBalance < 0) {
+			return false;
+		}
+		if (!DaoFactory.getMemberDao().updateBalance(this.getId(), newBalance)) {
+			return false;
+		}
+		this.balance = newBalance;
+		return true;
+	}
+
+	public boolean addBike(Bike bike) {
+		if (!DaoFactory.getBikeDao().create(bike, this.getId())) {
+			return false;
+		}
+		bikes.add(bike);
+		return true;
+	}
+
 	static public boolean addMember(Member member) {
 		return DaoFactory.getMemberDao().create(member);
+	}
+
+	public boolean updateInfo() {
+		return DaoFactory.getMemberDao().update(this);
+	}
+
+	public boolean addCategory(Category category) {
+		if (categories.contains(category)) {
+			return false;
+		}
+		categories.add(category);
+		return DaoFactory.getCategoryDao().addCategoryToMember(this.getId(), category.getId());
 	}
 
 	static public List<Member> getAllMember() {

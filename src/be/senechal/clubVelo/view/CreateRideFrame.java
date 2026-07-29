@@ -29,7 +29,7 @@ public class CreateRideFrame extends JFrame {
         setLayout(new BorderLayout());
 
         // Header
-        String catName = manager.getCategory().getClass().getSimpleName();
+        String catName = manager.getCategory() != null ? manager.getCategory().getClass().getSimpleName() : "Aucune";
         JLabel title = new JLabel("Nouveau Ride - " + catName, SwingConstants.CENTER);
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));

@@ -21,6 +21,10 @@ public class TreasurerFrame extends JFrame {
     private DefaultTableModel cotisModel;
     private List<Member> displayedMembers;
 
+    private JComboBox<Ride> rideSelector;
+    private JTextArea rideDetailsArea;
+    private JButton processRidePaymentBtn;
+
     public TreasurerFrame() {
         if (Session.getCurrentUser() instanceof Treasurer) {
             this.loggedTreasurer = (Treasurer) Session.getCurrentUser();
@@ -44,6 +48,7 @@ public class TreasurerFrame extends JFrame {
         // --- ONGLETS ---
         JTabbedPane tabbedPane = new JTabbedPane();
         tabbedPane.addTab("État des Cotisations", createCotisationPanel());
+        tabbedPane.addTab("Gestion Covoiturage", createCarpoolPanel());
         getContentPane().add(tabbedPane, BorderLayout.CENTER);
 
         // Footer
@@ -132,6 +137,83 @@ public class TreasurerFrame extends JFrame {
     // ---------------------------------------------------------
     // PANNEAU 2 : COVOITURAGE
     // ---------------------------------------------------------
+    private JPanel createCarpoolPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        JPanel top = new JPanel();
+        top.add(new JLabel("Sélectionner un Ride :"));
+        rideSelector = new JComboBox<>();
+        try {
+            List<Ride> rides = Ride.getAllRide();
+
+            for(Ride r : rides) rideSelector.addItem(r);
+        } catch(Exception e) {}
+
+        rideSelector.addActionListener(e -> showRideImpact());
+        top.add(rideSelector);
+        panel.add(top, BorderLayout.NORTH);
+
+        // Centre
+        rideDetailsArea = new JTextArea();
+        rideDetailsArea.setEditable(false);
+        panel.add(new JScrollPane(rideDetailsArea), BorderLayout.CENTER);
+
+        // Bas
+        processRidePaymentBtn = new JButton("Valider et transférer les fonds");
+        processRidePaymentBtn.setBackground(new Color(220, 20, 60));
+        processRidePaymentBtn.setForeground(Color.WHITE);
+        processRidePaymentBtn.addActionListener(e -> processPayment());
+        panel.add(processRidePaymentBtn, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    private void showRideImpact() {
+        Ride ride = (Ride) rideSelector.getSelectedItem();
+        if(ride == null) return;
+
+        processRidePaymentBtn.setEnabled(!ride.isPaid());
+        processRidePaymentBtn.setText(ride.isPaid() ? "Balade déjà payée" : "Valider et transférer les fonds");
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Ride: ").append(ride.getStartPlace()).append(" | Coût total (aller-retour): ").append(ride.getFee()).append("€");
+        if (ride.isPaid()) {
+            sb.append("  [PAYÉE]");
+        }
+        sb.append("\n\n");
+
+        for (Treasurer.VehicleImpact impact : loggedTreasurer.computeRideImpact(ride)) {
+            sb.append("Véhicule de ").append(impact.getDriver().getName()).append(":\n");
+            sb.append("  + ").append(impact.getDriverGain()).append("€ pour le chauffeur.\n");
+            for (Member p : impact.getPassengers()) {
+                sb.append("  - ").append(impact.getFeePerPassenger()).append("€ pour ").append(p.getName()).append("\n");
+            }
+            sb.append("\n");
+        }
+        rideDetailsArea.setText(sb.toString());
+    }
+
+    private void processPayment() {
+        Ride ride = (Ride) rideSelector.getSelectedItem();
+        if(ride == null) return;
+
+        if (ride.isPaid()) {
+            JOptionPane.showMessageDialog(this, "Cette balade a déjà été payée.");
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(this, "Confirmer les transactions ?", "Paiement", JOptionPane.YES_NO_OPTION);
+        if(confirm != JOptionPane.YES_OPTION) return;
+
+        boolean success = loggedTreasurer.processRidePayments(ride);
+
+        if (success) {
+            JOptionPane.showMessageDialog(this, "Transactions effectuées !");
+        } else {
+            JOptionPane.showMessageDialog(this, "Erreur lors du traitement des paiements (aucune transaction n'a été appliquée).", "Erreur", JOptionPane.ERROR_MESSAGE);
+        }
+        showRideImpact();
+        loadCotisationData();
+    }
 
     // ---------------------------------------------------------
     // PANNEAU 3 : SUIVI DES PAIEMENTS

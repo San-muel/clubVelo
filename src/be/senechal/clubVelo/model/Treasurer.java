@@ -47,6 +47,57 @@ public class Treasurer extends Person {
         return impacts;
     }
 
+    public boolean processRidePayments(Ride ride) {
+        if (ride.isPaid()) {
+            return false;
+        }
+
+        List<VehicleImpact> impacts = computeRideImpact(ride);
+
+        try (Connection conn = Database.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                for (VehicleImpact impact : impacts) {
+                    Member driver = DaoFactory.getMemberDao().getById(impact.getDriver().getId());
+                    for (Member p : impact.getPassengers()) {
+                        Member passenger = DaoFactory.getMemberDao().getById(p.getId());
+                        claimFee(conn, ride, passenger, impact.getFeePerPassenger());
+                    }
+                    payDriver(conn, ride, driver, impact.getDriverGain());
+                }
+
+                DaoFactory.getRideDao().markAsPaid(conn, ride.getNum());
+                conn.commit();
+                ride.setPaid(true);
+                return true;
+            } catch (Exception e) {
+                conn.rollback();
+                LOGGER.log(Level.SEVERE, "Erreur lors du traitement des paiements du ride " + ride.getNum()
+                        + " — rollback effectué", e);
+                return false;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Erreur de connexion lors du traitement des paiements du ride " + ride.getNum(), e);
+            return false;
+        }
+    }
+
+    private void claimFee(Connection conn, Ride ride, Member member, double amount) throws Exception {
+        double newBalance = member.getBalance() - amount;
+        DaoFactory.getMemberDao().updateBalance(conn, member.getId(), newBalance);
+        member.setBalance(newBalance);
+        DaoFactory.getPaymentDao().record(conn, ride.getNum(), member.getId(), amount, "debit_passager");
+    }
+
+    private void payDriver(Connection conn, Ride ride, Member member, double amount) throws Exception {
+        double newBalance = member.getBalance() + amount;
+        DaoFactory.getMemberDao().updateBalance(conn, member.getId(), newBalance);
+        member.setBalance(newBalance);
+        DaoFactory.getPaymentDao().record(conn, ride.getNum(), member.getId(), amount, "credit_chauffeur");
+    }
+
     public static class VehicleImpact {
         private final Vehicle vehicle;
         private final Member driver;

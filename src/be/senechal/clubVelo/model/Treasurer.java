@@ -98,6 +98,18 @@ public class Treasurer extends Person {
         DaoFactory.getPaymentDao().record(conn, ride.getNum(), member.getId(), amount, "credit_chauffeur");
     }
 
+    public List<Payment> getPaymentHistory() {
+        return DaoFactory.getPaymentDao().getAll();
+    }
+
+    public double getTotalReimbursedToDrivers(List<Payment> history) {
+        return history.stream().filter(Payment::isDriverReimbursement).mapToDouble(Payment::getMontant).sum();
+    }
+
+    public double getTotalCollectedFromPassengers(List<Payment> history) {
+        return history.stream().filter(Payment::isPassengerPayment).mapToDouble(Payment::getMontant).sum();
+    }
+
     public static class VehicleImpact {
         private final Vehicle vehicle;
         private final Member driver;

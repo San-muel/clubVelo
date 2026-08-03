@@ -25,6 +25,10 @@ public class TreasurerFrame extends JFrame {
     private JTextArea rideDetailsArea;
     private JButton processRidePaymentBtn;
 
+    private JTable paymentsTable;
+    private DefaultTableModel paymentsModel;
+    private JLabel paymentsSummaryLabel;
+
     public TreasurerFrame() {
         if (Session.getCurrentUser() instanceof Treasurer) {
             this.loggedTreasurer = (Treasurer) Session.getCurrentUser();
@@ -49,6 +53,7 @@ public class TreasurerFrame extends JFrame {
         JTabbedPane tabbedPane = new JTabbedPane();
         tabbedPane.addTab("État des Cotisations", createCotisationPanel());
         tabbedPane.addTab("Gestion Covoiturage", createCarpoolPanel());
+        tabbedPane.addTab("Suivi des Paiements", createPaymentsHistoryPanel());
         getContentPane().add(tabbedPane, BorderLayout.CENTER);
 
         // Footer
@@ -213,10 +218,51 @@ public class TreasurerFrame extends JFrame {
         }
         showRideImpact();
         loadCotisationData();
+        loadPaymentsHistory();
     }
 
     // ---------------------------------------------------------
     // PANNEAU 3 : SUIVI DES PAIEMENTS
     // ---------------------------------------------------------
+    private JPanel createPaymentsHistoryPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
 
+        paymentsSummaryLabel = new JLabel(" ", SwingConstants.CENTER);
+        paymentsSummaryLabel.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));
+        panel.add(paymentsSummaryLabel, BorderLayout.NORTH);
+
+        String[] cols = {"Date", "Balade", "Membre", "Mouvement", "Montant (€)"};
+        paymentsModel = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+        paymentsTable = new JTable(paymentsModel);
+        panel.add(new JScrollPane(paymentsTable), BorderLayout.CENTER);
+
+        JPanel south = new JPanel();
+        JButton refreshBtn = new JButton("Actualiser l'historique");
+        refreshBtn.addActionListener(e -> loadPaymentsHistory());
+        south.add(refreshBtn);
+        panel.add(south, BorderLayout.SOUTH);
+
+        loadPaymentsHistory();
+        return panel;
+    }
+
+    private void loadPaymentsHistory() {
+        if (paymentsModel == null) return;
+        paymentsModel.setRowCount(0);
+        List<Payment> history = loggedTreasurer.getPaymentHistory();
+        for (Payment p : history) {
+            paymentsModel.addRow(new Object[]{
+                p.getFormattedDate(), p.getRideLabel(), p.getMemberName(),
+                p.getSensLabel(), String.format("%.2f", p.getMontant())
+            });
+        }
+        double toDrivers = loggedTreasurer.getTotalReimbursedToDrivers(history);
+        double fromPassengers = loggedTreasurer.getTotalCollectedFromPassengers(history);
+        paymentsSummaryLabel.setText(String.format(
+                "Total remboursé aux chauffeurs : %.2f €      |      Total encaissé sur les passagers : %.2f €",
+                toDrivers, fromPassengers));
+    }
 }

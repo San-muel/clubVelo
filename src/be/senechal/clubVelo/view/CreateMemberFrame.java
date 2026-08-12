@@ -180,7 +180,7 @@ public class CreateMemberFrame extends JFrame {
         JPanel btnPanel = new JPanel();
         JButton saveBtn = new JButton("S'inscrire");
         saveBtn.setBackground(new Color(60, 179, 113));
-        saveBtn.setForeground(Color.WHITE);
+        saveBtn.setForeground(Color.BLACK);
         saveBtn.addActionListener(e -> registerMember());
 
         JButton cancelBtn = new JButton("Annuler");

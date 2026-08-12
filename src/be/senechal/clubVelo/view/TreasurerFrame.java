@@ -165,7 +165,7 @@ public class TreasurerFrame extends JFrame {
         // Bas
         processRidePaymentBtn = new JButton("Valider et transférer les fonds");
         processRidePaymentBtn.setBackground(new Color(220, 20, 60));
-        processRidePaymentBtn.setForeground(Color.WHITE);
+        processRidePaymentBtn.setForeground(Color.BLACK);
         processRidePaymentBtn.addActionListener(e -> processPayment());
         panel.add(processRidePaymentBtn, BorderLayout.SOUTH);
 

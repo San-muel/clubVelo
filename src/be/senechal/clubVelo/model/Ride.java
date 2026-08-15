@@ -282,6 +282,14 @@ public class Ride {
         public List<Member> getSuperfluousDrivers() { return superfluousDrivers; }
     }
 
+    public boolean markAsPaid() {
+        boolean ok = DaoFactory.getRideDao().markAsPaid(this.num);
+        if (ok) {
+            this.paid = true;
+        }
+        return ok;
+    }
+
     public boolean delete() {
         if (this.paid) {
             return false;
